@@ -27,13 +27,53 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - run: npm test
 
     - name: Upload production-ready build files
       uses: actions/upload-artifact@v4
       with:
         name: production-files
         path: build/
+
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test Node js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
+    - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build Node js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
+
+    - name: Download production-ready build files
+      uses: actions/download-artifact@v4
+      with:
+        name: production-files
+        path: build/
+
+    
 
     - name: Deploy with gh-pages
       if: github.ref == 'refs/heads/master' && github.event_name == 'push'
